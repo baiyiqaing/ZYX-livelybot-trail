@@ -259,26 +259,107 @@ class HiFreeEnv(LeggedRobot):
 
     def compute_ref_state(self):
         phase = self._get_phase()
-        sin_pos = torch.sin(2 * torch.pi * phase +  self.random_half_phase[0])
+        sin_pos = torch.sin(2 * torch.pi * phase + self.random_half_phase[0])
         sin_pos_l = sin_pos.clone()
         sin_pos_r = sin_pos.clone()
-        self.ref_dof_pos = torch.zeros_like(self.dof_pos)
+
+        # 关键修正：将[1,21]的默认位置扩展到[4096,21]，匹配ref_dof_pos的维度
+        # expand：高效扩展维度（不复制数据），要求被扩展的维度是1
+        # 先clone避免修改原dof_default_pos，再expand到目标形状
+        batch_size = self.dof_pos.shape[0]  # 获取batch_size（4096）
+        self.ref_dof_pos = self.dof_default_pos.clone().expand(batch_size, -1)
+        # 若expand报错（比如dof_default_pos不是[1,21]而是[21,]），可改用：
+        # self.ref_dof_pos = self.dof_default_pos.clone().unsqueeze(0).expand(batch_size, -1)
+
         scale_1 = self.cfg.rewards.target_joint_pos_scale
         scale_2 = 2 * scale_1
-        # left foot stance phase set to default joint pos
-        sin_pos_l[sin_pos_l > 0] = 0
-        self.ref_dof_pos[:, 0] = sin_pos_l * scale_1
-        self.ref_dof_pos[:, 3] = -sin_pos_l * scale_2
-        self.ref_dof_pos[:, 4] = sin_pos_l * scale_1
-        # right foot stance phase set to default joint pos
-        sin_pos_r[sin_pos_r < 0] = 0
-        self.ref_dof_pos[:, 6] = -sin_pos_r * scale_1
-        self.ref_dof_pos[:, 9] = sin_pos_r * scale_2
-        self.ref_dof_pos[:, 10] = -sin_pos_r * scale_1
-        # Double support phase
-        self.ref_dof_pos[torch.abs(sin_pos) < 0.1] = 0
 
-        self.ref_action = 2 * self.ref_dof_pos
+        # 左脚踏地阶段：在默认位置基础上叠加偏移
+        sin_pos_l[sin_pos_l > 0] = 0
+        self.ref_dof_pos[:, 0] += sin_pos_l * scale_1
+        self.ref_dof_pos[:, 3] += -sin_pos_l * scale_2
+        self.ref_dof_pos[:, 4] += sin_pos_l * scale_1
+
+        # 右脚踏地阶段：在默认位置基础上叠加偏移
+        sin_pos_r[sin_pos_r < 0] = 0
+        self.ref_dof_pos[:, 6] += -sin_pos_r * scale_1
+        self.ref_dof_pos[:, 9] += sin_pos_r * scale_2
+        self.ref_dof_pos[:, 10] += -sin_pos_r * scale_1
+
+        # 双支撑阶段：恢复为默认位置（修正维度匹配问题）
+        # 先获取双支撑阶段的mask，再将对应位置赋值为扩展后的默认位置
+        mask = torch.abs(sin_pos) < 0.1
+        self.ref_dof_pos[mask] = self.dof_default_pos.expand(batch_size, -1)[mask]
+
+        # 参考动作：若action是“相对默认位置的偏移”，则计算差值；若为绝对位置，可调整
+        self.ref_action = 2 * (self.ref_dof_pos - self.dof_default_pos.expand(batch_size, -1))
+
+    # def compute_ref_state(self):
+    #     phase = self._get_phase()
+    #     sin_pos = torch.sin(2 * torch.pi * phase +  self.random_half_phase[0])
+    #     sin_pos_l = sin_pos.clone()
+    #     sin_pos_r = sin_pos.clone()
+    #     self.ref_dof_pos = torch.zeros_like(self.dof_pos)
+    #     scale_1 = self.cfg.rewards.target_joint_pos_scale
+    #     scale_2 = 2 * scale_1
+    #     # left foot stance phase set to default joint pos
+    #     sin_pos_l[sin_pos_l > 0] = 0
+    #     self.ref_dof_pos[:, 0] = sin_pos_l * scale_1
+    #     self.ref_dof_pos[:, 3] = -sin_pos_l * scale_2
+    #     self.ref_dof_pos[:, 4] = sin_pos_l * scale_1
+    #     # right foot stance phase set to default joint pos
+    #     sin_pos_r[sin_pos_r < 0] = 0
+    #     self.ref_dof_pos[:, 6] = -sin_pos_r * scale_1
+    #     self.ref_dof_pos[:, 9] = sin_pos_r * scale_2
+    #     self.ref_dof_pos[:, 10] = -sin_pos_r * scale_1
+    #     # Double support phase
+    #     self.ref_dof_pos[torch.abs(sin_pos) < 0.1] = 0
+    #
+    #     self.ref_action = 2 * self.ref_dof_pos
+    #     # self.ref_action_debug = self.ref_action[:, [0, 3, 4, 6, 9, 10]] # zyx-debug
+
+    def compute_ref_state(self):
+        phase = self._get_phase()
+        sin_pos = torch.sin(2 * torch.pi * phase + self.random_half_phase[0])
+        sin_pos_l = sin_pos.clone()
+        sin_pos_r = sin_pos.clone()
+
+        # 1. 维度扩展：将[1,21]的默认位置扩展到[4096,21]，匹配batch维度
+        batch_size = self.dof_pos.shape[0]
+        # 先确保default_dof_pos是2维（[1,21]），再扩展
+        dof_default_expanded = self.default_dof_pos.clone()
+        if dof_default_expanded.dim() == 1:  # 若原始是[21,]，转为[1,21]
+            dof_default_expanded = dof_default_expanded.unsqueeze(0)
+        dof_default_expanded = dof_default_expanded.expand(batch_size, -1)
+
+        # 2. 初始化参考位置为默认位置（基准）
+        self.ref_dof_pos = dof_default_expanded.clone()
+
+        scale_1 = 2 * self.cfg.rewards.target_joint_pos_scale
+        scale_2 = 3 * self.cfg.rewards.target_joint_pos_scale
+        scale_3 = 1 * self.cfg.rewards.target_joint_pos_scale
+
+        # 3. 左脚踏地阶段：在默认位置上叠加正弦偏移
+        sin_pos_l[sin_pos_l > 0] = 0
+        self.ref_dof_pos[:, 0] += sin_pos_l * scale_1
+        self.ref_dof_pos[:, 3] += -sin_pos_l * scale_2
+        self.ref_dof_pos[:, 4] += sin_pos_l * scale_3
+
+        # 4. 右脚踏地阶段：在默认位置上叠加正弦偏移
+        sin_pos_r[sin_pos_r < 0] = 0
+        self.ref_dof_pos[:, 6] += -sin_pos_r * scale_1
+        self.ref_dof_pos[:, 9] += sin_pos_r * scale_2
+        self.ref_dof_pos[:, 10] += -sin_pos_r * scale_3
+
+        # 5. 双支撑阶段：恢复为默认位置
+        mask = torch.abs(sin_pos) < 0.1
+        self.ref_dof_pos[mask] = dof_default_expanded[mask]
+
+        # 6. 关键适配：ref_action是「参考位置 - 默认位置」的2倍（偏移量）
+        # 因为step中是actions += ref_action，所以ref_action必须是偏移量，而非绝对位置
+        self.ref_action = 2 * (self.ref_dof_pos - dof_default_expanded)
+
+        self.ref_action_debug = self.ref_dof_pos[:, [0, 3, 4, 6, 9, 10]] # zyx-debug
 
     def create_sim(self):
         """Creates simulation, terrain and evironments"""
@@ -527,7 +608,7 @@ class HiFreeEnv(LeggedRobot):
             -torch.sum(torch.abs(self.base_euler_xyz[:, :2]), dim=1) * 10
         )
         orientation = torch.exp(-torch.norm(self.projected_gravity[:, :2], dim=1) * 20)
-        return (quat_mismatch + orientation -0.2) / 2.0
+        return (quat_mismatch + orientation -0.3) / 2.0
 
     def _reward_feet_contact_forces(self):
         """

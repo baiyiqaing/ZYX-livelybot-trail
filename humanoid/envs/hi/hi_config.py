@@ -191,7 +191,7 @@ class HiCfg(LeggedRobotCfg):
         push_robots = True
         push_interval_s = 4
         max_push_vel_xy = 0.2
-        max_push_ang_vel = 0.5 # 0.4
+        max_push_ang_vel = 0.2 # 0.4
         dynamic_randomization = 0.02
 
     class commands(LeggedRobotCfg.commands):
@@ -208,12 +208,12 @@ class HiCfg(LeggedRobotCfg):
 
     class rewards:
         base_height_target = 0.47
-        min_dist = 0.20
-        max_dist = 0.29
+        min_dist = 0.19
+        max_dist = 0.21
         # put some settings here for LLM parameter tuning
-        target_joint_pos_scale = 0.08  # rad
+        target_joint_pos_scale =  0.20 #0.08  # rad
         target_feet_height = 0.02  # m
-        cycle_time = 0.4  # sec
+        cycle_time = 0.667  # sec
         # if true negative total rewards are clipped at zero (avoids early termination problems)
         only_positive_rewards = False
         # tracking reward = exp(error*sigma)
@@ -234,17 +234,17 @@ class HiCfg(LeggedRobotCfg):
             # contact
             feet_contact_forces = -0.001
             # vel tracking
-            tracking_lin_vel = 20
+            tracking_lin_vel = 13
             tracking_ang_vel = 20
             vel_mismatch_exp = 0.5  # lin_z; ang x,y
             low_speed =0.05
-            track_vel_hard = 10#0.2
+            track_vel_hard = 4#0.2
             # base pos
-            default_hip_roll_joint_pos = 0.2
+            default_hip_roll_joint_pos = 0.05
             default_thigh_joint_pos = 1.0
             default_ankle_roll_pos = 0.5
-            orientation = 3.5
-            base_height = 1.9
+            orientation = 4.0
+            base_height = 1.0
             base_acc = 0.2
             # energy
             action_smoothness = -0.002

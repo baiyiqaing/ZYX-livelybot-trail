@@ -47,7 +47,7 @@ class HiCfg(LeggedRobotCfg):
         num_actions = 21
         num_envs = 4096
         episode_length_s = 12  # episode length in seconds
-        use_ref_actions = False
+        use_ref_actions = False # be careful with the step() usage. --zyx
 
     class safety:
         # safety factors

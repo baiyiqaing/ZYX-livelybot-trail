@@ -257,43 +257,6 @@ class HiFreeEnv(LeggedRobot):
 
         return stance_mask
 
-    def compute_ref_state(self):
-        phase = self._get_phase()
-        sin_pos = torch.sin(2 * torch.pi * phase + self.random_half_phase[0])
-        sin_pos_l = sin_pos.clone()
-        sin_pos_r = sin_pos.clone()
-
-        # 关键修正：将[1,21]的默认位置扩展到[4096,21]，匹配ref_dof_pos的维度
-        # expand：高效扩展维度（不复制数据），要求被扩展的维度是1
-        # 先clone避免修改原dof_default_pos，再expand到目标形状
-        batch_size = self.dof_pos.shape[0]  # 获取batch_size（4096）
-        self.ref_dof_pos = self.dof_default_pos.clone().expand(batch_size, -1)
-        # 若expand报错（比如dof_default_pos不是[1,21]而是[21,]），可改用：
-        # self.ref_dof_pos = self.dof_default_pos.clone().unsqueeze(0).expand(batch_size, -1)
-
-        scale_1 = self.cfg.rewards.target_joint_pos_scale
-        scale_2 = 2 * scale_1
-
-        # 左脚踏地阶段：在默认位置基础上叠加偏移
-        sin_pos_l[sin_pos_l > 0] = 0
-        self.ref_dof_pos[:, 0] += sin_pos_l * scale_1
-        self.ref_dof_pos[:, 3] += -sin_pos_l * scale_2
-        self.ref_dof_pos[:, 4] += sin_pos_l * scale_1
-
-        # 右脚踏地阶段：在默认位置基础上叠加偏移
-        sin_pos_r[sin_pos_r < 0] = 0
-        self.ref_dof_pos[:, 6] += -sin_pos_r * scale_1
-        self.ref_dof_pos[:, 9] += sin_pos_r * scale_2
-        self.ref_dof_pos[:, 10] += -sin_pos_r * scale_1
-
-        # 双支撑阶段：恢复为默认位置（修正维度匹配问题）
-        # 先获取双支撑阶段的mask，再将对应位置赋值为扩展后的默认位置
-        mask = torch.abs(sin_pos) < 0.1
-        self.ref_dof_pos[mask] = self.dof_default_pos.expand(batch_size, -1)[mask]
-
-        # 参考动作：若action是“相对默认位置的偏移”，则计算差值；若为绝对位置，可调整
-        self.ref_action = 2 * (self.ref_dof_pos - self.dof_default_pos.expand(batch_size, -1))
-
     # def compute_ref_state(self):
     #     phase = self._get_phase()
     #     sin_pos = torch.sin(2 * torch.pi * phase +  self.random_half_phase[0])
@@ -357,9 +320,10 @@ class HiFreeEnv(LeggedRobot):
 
         # 6. 关键适配：ref_action是「参考位置 - 默认位置」的2倍（偏移量）
         # 因为step中是actions += ref_action，所以ref_action必须是偏移量，而非绝对位置
-        self.ref_action = 2 * (self.ref_dof_pos - dof_default_expanded)
 
-        self.ref_action_debug = self.ref_dof_pos[:, [0, 3, 4, 6, 9, 10]] # zyx-debug
+        # self.ref_action = 2 * (self.ref_dof_pos - dof_default_expanded)
+        self.ref_dof_pos[mask][:, [0, 3, 4, 6, 9, 10]] = dof_default_expanded[mask][:, [0, 3, 4, 6, 9, 10]]
+        # self.ref_action_debug = self.ref_dof_pos[:, [0, 3, 4, 6, 9, 10]] # zyx-debug
 
     def create_sim(self):
         """Creates simulation, terrain and evironments"""
@@ -542,6 +506,64 @@ class HiFreeEnv(LeggedRobot):
         return (
             torch.exp(-torch.abs(d_min) * 100) + torch.exp(-torch.abs(d_max) * 100)
         ) / 2
+
+    # def _reward_feet_distance(self):
+    #     """
+    #     Calculates the reward based on foot lateral width & longitudinal length (X/Y plane only).
+    #     纯GPU批量实现：无Python循环、无CPU/GPU迁移，不受世界朝向影响，z轴不参与计算
+    #     """
+    #     # 1. 提取GPU张量数据（3D仅为转换，最终切回2D）
+    #     foot_pos_world_3d = self.rigid_state[:, self.feet_indices, :3]  # [batch,2,3]
+    #     root_pos = self.rigid_state[:, self.root_idx, :3]  # [batch,3]
+    #     root_rot = self.rigid_state[:, self.root_idx, 3:7]  # [batch,4]（wxyz）
+    #
+    #     # 2. 纯GPU批量转换：世界坐标 → 机器人本体局部坐标（绕开gymapi，无循环）
+    #     def quat_rotate_point(q: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
+    #         """批量四元数旋转3D点（wxyz格式，Isaac Gym兼容）"""
+    #         w, x, y, z = q[:, 0:1], q[:, 1:2], q[:, 2:3], q[:, 3:4]
+    #         p_rot_x = (w ** 2 + x ** 2 - y ** 2 - z ** 2) * p[..., 0:1] + 2 * (x * y - w * z) * p[..., 1:2] + 2 * (
+    #                     x * z + w * y) * p[..., 2:3]
+    #         p_rot_y = 2 * (x * y + w * z) * p[..., 0:1] + (w ** 2 - x ** 2 + y ** 2 - z ** 2) * p[..., 1:2] + 2 * (
+    #                     y * z - w * x) * p[..., 2:3]
+    #         p_rot_z = 2 * (x * z - w * y) * p[..., 0:1] + 2 * (y * z + w * x) * p[..., 1:2] + (
+    #                     w ** 2 - x ** 2 - y ** 2 + z ** 2) * p[..., 2:3]
+    #         return torch.cat([p_rot_x, p_rot_y, p_rot_z], dim=-1)
+    #
+    #     # 平移：双脚相对根节点的世界偏移
+    #     foot_offset_world = foot_pos_world_3d - root_pos.unsqueeze(1)  # [batch,2,3]
+    #     # 旋转：共轭四元数实现逆旋转（世界→局部）
+    #     root_rot_conj = torch.cat([root_rot[:, 0:1], -root_rot[:, 1:4]], dim=-1)
+    #     foot_pos_local_3d = quat_rotate_point(root_rot_conj, foot_offset_world)
+    #     # 彻底舍弃z轴，仅留X/Y平面，和你原有代码一致
+    #     foot_pos = foot_pos_local_3d[..., :2]  # [batch,2,2]
+    #
+    #     # 3. 拆分：本体X/Y平面的侧向宽度、纵向长度（仅X/Y参与）
+    #     foot0, foot1 = foot_pos[:, 0, :], foot_pos[:, 1, :]
+    #     lat_dist = torch.abs(foot0[:, 1] - foot1[:, 1])  # 侧向宽度（本体Y轴）
+    #     lon_dist = torch.abs(foot0[:, 0] - foot1[:, 0])  # 纵向长度（本体X轴）
+    #
+    #     # 4. 配置参数
+    #     lat_min = 0.17
+    #     lat_max = 0.22
+    #     lon_min = 0.1
+    #     lon_max = 0.18
+    #     penalty_coeff = 100
+    #
+    #     # 5. 复用你原有惩罚逻辑
+    #     d_lat_min = torch.clamp(lat_dist - lat_min, -0.5, 0.0)
+    #     d_lat_max = torch.clamp(lat_dist - lat_max, 0, 0.5)
+    #     reward_lat = (torch.exp(-torch.abs(d_lat_min) * penalty_coeff) + torch.exp(
+    #         -torch.abs(d_lat_max) * penalty_coeff)) / 2
+    #
+    #     d_lon_min = torch.clamp(lon_dist - lon_min, -0.5, 0.0)
+    #     d_lon_max = torch.clamp(lon_dist - lon_max, 0, 0.5)
+    #     reward_lon = (torch.exp(-torch.abs(d_lon_min) * penalty_coeff) + torch.exp(
+    #         -torch.abs(d_lon_max) * penalty_coeff)) / 2
+    #
+    #     # 6. 合并总奖励
+    #     total_reward = (reward_lat + reward_lon) / 2
+    #
+    #     return total_reward
 
     def _reward_knee_distance(self):
         """

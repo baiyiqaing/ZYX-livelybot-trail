@@ -476,6 +476,18 @@ class HiFreeEnv(LeggedRobot):
         for i in range(self.critic_history.maxlen):
             self.critic_history[i][env_ids] *= 0
 
+    def get_feet_pos_in_base(self):  # --zyx
+        left_foot_world = self.rigid_state[:, self.feet_indices[0], :3]
+        right_foot_world = self.rigid_state[:, self.feet_indices[1], :3]
+
+        left_rel_pos = left_foot_world - self.base_pos
+        left_foot_base = quat_rotate_inverse(self.base_quat, left_rel_pos)
+
+        right_rel_pos = right_foot_world - self.base_pos
+        right_foot_base = quat_rotate_inverse(self.base_quat, right_rel_pos)
+
+        return left_foot_base, right_foot_base
+
     # ================================================ Rewards ================================================== #
     def _reward_joint_pos(self):
         """
@@ -493,6 +505,30 @@ class HiFreeEnv(LeggedRobot):
         ).clamp(0, 0.5)
         return r
 
+    def _reward_feet_y_distance(self):
+        """
+        Calculates the reward based on the y-direction distance between the feet.
+        Penilize feet get close to each other or too far away in y-axis.
+        """
+        # 获取基座系下左右脚的3D坐标
+        left_foot_base, right_foot_base = self.get_feet_pos_in_base()
+
+        # 提取左右脚的y坐标，计算y方向的绝对距离（替代原欧式距离）
+        left_foot_y = left_foot_base[:, 1]  # 左脚y坐标 [num_envs]
+        right_foot_y = right_foot_base[:, 1]  # 右脚y坐标 [num_envs]
+        foot_y_dist = torch.abs(left_foot_y - right_foot_y)  # y方向距离 [num_envs]
+
+        # 复用原逻辑的配置参数（建议在cfg里新增y方向的阈值，也可直接复用原min/max_dist）
+        min_fd_y = self.cfg.rewards.min_dist_y if hasattr(self.cfg.rewards, 'min_dist_y') else self.cfg.rewards.min_dist
+        max_df_y = self.cfg.rewards.max_dist_y if hasattr(self.cfg.rewards, 'max_dist_y') else self.cfg.rewards.max_dist
+
+        # 与原函数一致的惩罚逻辑：限制距离范围，计算指数奖励
+        d_min = torch.clamp(foot_y_dist - min_fd_y, -0.5, 0.0)
+        d_max = torch.clamp(foot_y_dist - max_df_y, 0, 0.5)
+        return (
+                torch.exp(-torch.abs(d_min) * 100) + torch.exp(-torch.abs(d_max) * 100)
+        ) / 2
+
     def _reward_feet_distance(self):
         """
         Calculates the reward based on the distance between the feet. Penilize feet get close to each other or too far away.
@@ -507,63 +543,6 @@ class HiFreeEnv(LeggedRobot):
             torch.exp(-torch.abs(d_min) * 100) + torch.exp(-torch.abs(d_max) * 100)
         ) / 2
 
-    # def _reward_feet_distance(self):
-    #     """
-    #     Calculates the reward based on foot lateral width & longitudinal length (X/Y plane only).
-    #     纯GPU批量实现：无Python循环、无CPU/GPU迁移，不受世界朝向影响，z轴不参与计算
-    #     """
-    #     # 1. 提取GPU张量数据（3D仅为转换，最终切回2D）
-    #     foot_pos_world_3d = self.rigid_state[:, self.feet_indices, :3]  # [batch,2,3]
-    #     root_pos = self.rigid_state[:, self.root_idx, :3]  # [batch,3]
-    #     root_rot = self.rigid_state[:, self.root_idx, 3:7]  # [batch,4]（wxyz）
-    #
-    #     # 2. 纯GPU批量转换：世界坐标 → 机器人本体局部坐标（绕开gymapi，无循环）
-    #     def quat_rotate_point(q: torch.Tensor, p: torch.Tensor) -> torch.Tensor:
-    #         """批量四元数旋转3D点（wxyz格式，Isaac Gym兼容）"""
-    #         w, x, y, z = q[:, 0:1], q[:, 1:2], q[:, 2:3], q[:, 3:4]
-    #         p_rot_x = (w ** 2 + x ** 2 - y ** 2 - z ** 2) * p[..., 0:1] + 2 * (x * y - w * z) * p[..., 1:2] + 2 * (
-    #                     x * z + w * y) * p[..., 2:3]
-    #         p_rot_y = 2 * (x * y + w * z) * p[..., 0:1] + (w ** 2 - x ** 2 + y ** 2 - z ** 2) * p[..., 1:2] + 2 * (
-    #                     y * z - w * x) * p[..., 2:3]
-    #         p_rot_z = 2 * (x * z - w * y) * p[..., 0:1] + 2 * (y * z + w * x) * p[..., 1:2] + (
-    #                     w ** 2 - x ** 2 - y ** 2 + z ** 2) * p[..., 2:3]
-    #         return torch.cat([p_rot_x, p_rot_y, p_rot_z], dim=-1)
-    #
-    #     # 平移：双脚相对根节点的世界偏移
-    #     foot_offset_world = foot_pos_world_3d - root_pos.unsqueeze(1)  # [batch,2,3]
-    #     # 旋转：共轭四元数实现逆旋转（世界→局部）
-    #     root_rot_conj = torch.cat([root_rot[:, 0:1], -root_rot[:, 1:4]], dim=-1)
-    #     foot_pos_local_3d = quat_rotate_point(root_rot_conj, foot_offset_world)
-    #     # 彻底舍弃z轴，仅留X/Y平面，和你原有代码一致
-    #     foot_pos = foot_pos_local_3d[..., :2]  # [batch,2,2]
-    #
-    #     # 3. 拆分：本体X/Y平面的侧向宽度、纵向长度（仅X/Y参与）
-    #     foot0, foot1 = foot_pos[:, 0, :], foot_pos[:, 1, :]
-    #     lat_dist = torch.abs(foot0[:, 1] - foot1[:, 1])  # 侧向宽度（本体Y轴）
-    #     lon_dist = torch.abs(foot0[:, 0] - foot1[:, 0])  # 纵向长度（本体X轴）
-    #
-    #     # 4. 配置参数
-    #     lat_min = 0.17
-    #     lat_max = 0.22
-    #     lon_min = 0.1
-    #     lon_max = 0.18
-    #     penalty_coeff = 100
-    #
-    #     # 5. 复用你原有惩罚逻辑
-    #     d_lat_min = torch.clamp(lat_dist - lat_min, -0.5, 0.0)
-    #     d_lat_max = torch.clamp(lat_dist - lat_max, 0, 0.5)
-    #     reward_lat = (torch.exp(-torch.abs(d_lat_min) * penalty_coeff) + torch.exp(
-    #         -torch.abs(d_lat_max) * penalty_coeff)) / 2
-    #
-    #     d_lon_min = torch.clamp(lon_dist - lon_min, -0.5, 0.0)
-    #     d_lon_max = torch.clamp(lon_dist - lon_max, 0, 0.5)
-    #     reward_lon = (torch.exp(-torch.abs(d_lon_min) * penalty_coeff) + torch.exp(
-    #         -torch.abs(d_lon_max) * penalty_coeff)) / 2
-    #
-    #     # 6. 合并总奖励
-    #     total_reward = (reward_lat + reward_lon) / 2
-    #
-    #     return total_reward
 
     def _reward_knee_distance(self):
         """
@@ -572,7 +551,7 @@ class HiFreeEnv(LeggedRobot):
         foot_pos = self.rigid_state[:, self.knee_indices, :2]
         foot_dist = torch.norm(foot_pos[:, 0, :] - foot_pos[:, 1, :], dim=1)
         fd = self.cfg.rewards.min_dist
-        max_df = self.cfg.rewards.max_dist * 2.0
+        max_df = self.cfg.rewards.max_dist * 1.3
         d_min = torch.clamp(foot_dist - fd, -0.5, 0.0)
         d_max = torch.clamp(foot_dist - max_df, 0, 0.5)
         return (

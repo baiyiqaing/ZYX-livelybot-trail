@@ -229,7 +229,8 @@ class HiCfg(LeggedRobotCfg):
             # gait
             feet_air_time = 1.0
             foot_slip = -0.05
-            feet_distance = 0.16  # 0.2
+            feet_y_distance = 0.16 # --zyx
+            feet_distance = 0.  # 0.2
             knee_distance = 0.16  # 0.2
             # contact
             feet_contact_forces = -0.001

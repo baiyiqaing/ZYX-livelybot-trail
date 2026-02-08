@@ -529,6 +529,30 @@ class HiFreeEnv(LeggedRobot):
                 torch.exp(-torch.abs(d_min) * 100) + torch.exp(-torch.abs(d_max) * 100)
         ) / 2
 
+    def _reward_feet_x_distance(self):
+        """
+        Calculates the reward based on the y-direction distance between the feet.
+        Penilize feet get close to each other or too far away in y-axis.
+        """
+        # 获取基座系下左右脚的3D坐标
+        left_foot_base, right_foot_base = self.get_feet_pos_in_base()
+
+        # 提取左右脚的y坐标，计算y方向的绝对距离（替代原欧式距离）
+        left_foot_x = left_foot_base[:, 0]  # 左脚y坐标 [num_envs]
+        right_foot_x = right_foot_base[:, 0]  # 右脚y坐标 [num_envs]
+        foot_x_dist = torch.abs(left_foot_x - right_foot_x)  # y方向距离 [num_envs]
+
+        # 复用原逻辑的配置参数（建议在cfg里新增y方向的阈值，也可直接复用原min/max_dist）
+        min_fd_x = self.cfg.rewards.min_dist_x
+        max_df_x = self.cfg.rewards.max_dist_x
+
+        # 与原函数一致的惩罚逻辑：限制距离范围，计算指数奖励
+        d_min = torch.clamp(foot_x_dist - min_fd_x, -0.5, 0.0)
+        d_max = torch.clamp(foot_x_dist - max_df_x, 0, 0.5)
+        return (
+                torch.exp(-torch.abs(d_min) * 100) + torch.exp(-torch.abs(d_max) * 100)
+        ) / 2
+
     def _reward_feet_distance(self):
         """
         Calculates the reward based on the distance between the feet. Penilize feet get close to each other or too far away.
@@ -624,7 +648,7 @@ class HiFreeEnv(LeggedRobot):
             dim=1,
         )
 
-    def _reward_default_hip_roll_joint_pos(self):
+    def _reward_default_ankle_roll_joint_pos(self):
         """
         Calculates the reward for keeping joint positions close to default positions, with a focus
         on penalizing deviation in yaw and roll directions. Excludes yaw and roll from the main penalty.
@@ -642,6 +666,9 @@ class HiFreeEnv(LeggedRobot):
         yaw_roll = torch.clamp(yaw_roll, 0, 50)
         return torch.exp(-yaw_roll / 0.1)
 
+    def _reward_default_upper_joint_pos(self):
+
+        return 0
     def _reward_base_height(self):
         """
         Calculates the reward based on the robot's base height. Penalizes deviation from a target base height.

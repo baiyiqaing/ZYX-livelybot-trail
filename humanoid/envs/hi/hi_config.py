@@ -201,7 +201,7 @@ class HiCfg(LeggedRobotCfg):
         heading_command = True  # if true: compute ang vel command from heading error
 
         class ranges:
-            lin_vel_x = [0.4, 0.5]  # min max [m/s]
+            lin_vel_x = [-0.5, 0.5]  # min max [m/s]
             lin_vel_y = [-0.2, 0.2]  # min max [m/s]
             ang_vel_yaw = [-0.3, 0.3]  # min max [rad/s]
             heading = [-3.14, 3.14]
@@ -210,26 +210,30 @@ class HiCfg(LeggedRobotCfg):
         base_height_target = 0.47
         min_dist = 0.19
         max_dist = 0.21
+        # --zyx
+        min_dist_x = 18
+        max_dist_x = 25
         # put some settings here for LLM parameter tuning
-        target_joint_pos_scale =  0.20 #0.08  # rad
+        target_joint_pos_scale =  0.25 #0.08  # rad
         target_feet_height = 0.02  # m
-        cycle_time = 0.667  # sec
+        cycle_time = 0.750  # sec
         # if true negative total rewards are clipped at zero (avoids early termination problems)
         only_positive_rewards = False
         # tracking reward = exp(error*sigma)
         tracking_sigma_ang = 0.1
         tracking_sigma_lin = 0.1
-        max_contact_force = 180  # 130 pai #forces above this value are penalized
+        max_contact_force = 230  # 130 pai #forces above this value are penalized
 
         class scales:
             # reference motion tracking
-            joint_pos = 1.6  # 1.6
-            feet_clearance = 5.0
+            joint_pos = 5.6  # 1.6
+            feet_clearance = 3.0
             feet_contact_number = 1.2
             # gait
             feet_air_time = 1.0
             foot_slip = -0.05
-            feet_y_distance = 0.16 # --zyx
+            feet_x_distance = 0.4
+            feet_y_distance = 2.16 # --zyx
             feet_distance = 0.  # 0.2
             knee_distance = 0.16  # 0.2
             # contact
@@ -239,13 +243,13 @@ class HiCfg(LeggedRobotCfg):
             tracking_ang_vel = 20
             vel_mismatch_exp = 0.5  # lin_z; ang x,y
             low_speed =0.05
-            track_vel_hard = 4#0.2
+            track_vel_hard = 8 #0.2
             # base pos
-            default_hip_roll_joint_pos = 0.05
-            default_thigh_joint_pos = 1.0
+            default_hip_roll_joint_pos = 0.
+            default_thigh_joint_pos = 0.8
             default_ankle_roll_pos = 0.5
-            orientation = 4.0
-            base_height = 1.0
+            orientation = 3.0
+            base_height = 0.2
             base_acc = 0.2
             # energy
             action_smoothness = -0.002
@@ -271,7 +275,7 @@ class HiCfg(LeggedRobotCfg):
 
 
 class HiCfgPPO(LeggedRobotCfgPPO):
-    seed = 5
+    seed = 50
     runner_class_name = "OnPolicyRunner"  # DWLOnPolicyRunner
 
     class policy:

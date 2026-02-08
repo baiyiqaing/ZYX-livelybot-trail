@@ -85,7 +85,7 @@ def play(args):
         print('Exported policy as jit script to: ', path)
 
     logger = Logger(env.dt)
-    robot_index = 1 # which robot is used for logging
+    robot_index = 5 # which robot is used for logging
     joint_index = 1 # which joint is used for logging
     stop_state_log = 500 # number of steps before plotting states
     if RENDER:
@@ -118,10 +118,10 @@ def play(args):
         actions = policy(obs.detach()) # * 0.
         
         if FIX_COMMAND:
-            env.commands[:, 0] = 0.0    # 1.0
-            env.commands[:, 1] = 0.
-            env.commands[:, 2] = 0.
-            env.commands[:, 3] = 0.
+            env.commands[:, 0] = 0.6  # 1.0
+            env.commands[:, 1] = 0.01
+            env.commands[:, 2] = 0.01
+            env.commands[:, 3] = 0.05
 
         obs, critic_obs, rews, dones, infos = env.step(actions.detach())
 
@@ -177,6 +177,6 @@ def play(args):
 if __name__ == '__main__':
     EXPORT_POLICY = True
     RENDER = True
-    FIX_COMMAND = False
+    FIX_COMMAND = True
     args = get_args()
     play(args)

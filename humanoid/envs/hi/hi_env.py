@@ -212,12 +212,17 @@ class HiFreeEnv(LeggedRobot):
         self.time_out_buf = (
             self.episode_length_buf > self.max_episode_length
         )  # no terminal reward for time-outs
+        # self.reset_buf |= torch.any(
+        #     torch.abs(self.projected_gravity[:, 0:1]) > 0.1, dim=1
+        # )
+        # self.reset_buf |= torch.any(
+        #     torch.abs(self.projected_gravity[:, 1:2]) > 0.1, dim=1
+        # )
+
         self.reset_buf |= torch.any(
-            torch.abs(self.projected_gravity[:, 0:1]) > 0.8, dim=1
+            torch.abs(self.projected_gravity[:, :2]) > 0.65, dim=1
         )
-        self.reset_buf |= torch.any(
-            torch.abs(self.projected_gravity[:, 1:2]) > 0.8, dim=1
-        )
+
         # self.reset_buf |= torch.any(
         #     torch.norm(self.base_ang_vel, dim=-1, keepdim=True) > 15.0, dim=1
         # )
@@ -495,14 +500,16 @@ class HiFreeEnv(LeggedRobot):
 
     # ================================================ Rewards ================================================== #
 
-    def _reward_default_upper_joint_pos(self):
-        selected_columns = [12, 14, 15, 16, 18, 19, 20]
+    def _reward_default_upper_pos(self):
 
-        diff = (self.dof_pos - self.ref_dof_pos)[:, selected_columns]
+        selected_columns_default = [12, 14, 15, 16, 18, 19, 20]
 
-        r_dujp = torch.exp(-2 * torch.norm(diff, dim=1)) - 0.2 * torch.norm(
+        diff = (self.dof_pos - self.ref_dof_pos)[:, selected_columns_default]
+
+        r_dujp = torch.exp(-15 * torch.norm(diff, dim=1)) - 0.5 * torch.norm(
             diff, dim=1
-        ).clamp(0, 1.0) # 0.5 --zyx
+        ).clamp(0, 0.6) # original 0.5 --zyx
+
         return r_dujp
 
     def _reward_joint_pos(self):
@@ -516,9 +523,9 @@ class HiFreeEnv(LeggedRobot):
         #debug --zyx
         # ref_dof_pos = self.ref_dof_pos[:, selected_columns]
 
-        r = torch.exp(-2 * torch.norm(diff, dim=1)) - 0.2 * torch.norm(
+        r = torch.exp(-15 * torch.norm(diff, dim=1)) - 0.5 * torch.norm(
             diff, dim=1
-        ).clamp(0, 1.0) # 0.5 --zyx
+        ).clamp(0, 0.6) # original 0.5 --zyx
         return r
 
     def _reward_feet_y_distance(self):
@@ -542,8 +549,8 @@ class HiFreeEnv(LeggedRobot):
         d_min = torch.clamp(foot_y_dist - min_fd_y, -0.5, 0.0)
         d_max = torch.clamp(foot_y_dist - max_df_y, 0, 0.5)
         return (
-                torch.exp(-torch.abs(d_min) * 100) + torch.exp(-torch.abs(d_max) * 100)
-        ) / 2
+                torch.exp(-torch.abs(d_min) * 20) + torch.exp(-torch.abs(d_max) * 20)
+        ) / 2 - 1.0
 
     def _reward_feet_x_distance(self):
         """
@@ -566,8 +573,8 @@ class HiFreeEnv(LeggedRobot):
         d_min = torch.clamp(foot_x_dist - min_fd_x, -0.5, 0.0)
         d_max = torch.clamp(foot_x_dist - max_df_x, 0, 0.5)
         return (
-                torch.exp(-torch.abs(d_min) * 100) + torch.exp(-torch.abs(d_max) * 100)
-        ) / 2
+                torch.exp(-torch.abs(d_min) * 20) + torch.exp(-torch.abs(d_max) * 20)
+        ) / 2 - 1.0
 
     def _reward_feet_distance(self):
         """
@@ -664,7 +671,7 @@ class HiFreeEnv(LeggedRobot):
             dim=1,
         )
 
-    def _reward_default_ankle_roll_joint_pos(self):
+    def _reward_default_hip_roll_joint_pos(self):
         """
         Calculates the reward for keeping joint positions close to default positions, with a focus
         on penalizing deviation in yaw and roll directions. Excludes yaw and roll from the main penalty.
@@ -673,7 +680,7 @@ class HiFreeEnv(LeggedRobot):
         _yaw_roll = self.dof_pos[:, selected_columns]
         yaw_roll = torch.norm(_yaw_roll, dim=1)
         yaw_roll = torch.clamp(yaw_roll, 0, 50)
-        return torch.exp(-yaw_roll / 0.1)
+        return torch.exp(-yaw_roll / 0.1) -0.3
 
     def _reward_default_thigh_joint_pos(self):
         selected_columns = [2, 8]
@@ -682,9 +689,18 @@ class HiFreeEnv(LeggedRobot):
         yaw_roll = torch.clamp(yaw_roll, 0, 50)
         return torch.exp(-yaw_roll / 0.1)
 
-    def _reward_default_upper_joint_pos(self):
+    def _reward_default_ankle_roll_pos(self):
+        e_1 = get_euler_xyz_tensor(self.rigid_state[:, self.feet_indices[0], 3:7])
+        e_2 = get_euler_xyz_tensor(self.rigid_state[:, self.feet_indices[1], 3:7])
 
-        return 0
+        feet_eular_0 = torch.abs(e_1[:, 0])
+        feet_eular_1 = torch.abs(e_2[:, 0])
+        rew = torch.exp(-((feet_eular_0 + feet_eular_1) / 2) / 0.1)
+        feet_eular_0 = torch.abs(e_1[:, 1])
+        feet_eular_1 = torch.abs(e_2[:, 1])
+        rew += torch.exp(-((feet_eular_0 + feet_eular_1) / 2) / 0.1)
+        return rew / 2
+
     def _reward_base_height(self):
         """
         Calculates the reward based on the robot's base height. Penalizes deviation from a target base height.
@@ -738,7 +754,7 @@ class HiFreeEnv(LeggedRobot):
 
         linear_error = 0.2 * (lin_vel_error + ang_vel_error)
 
-        return (lin_vel_error_exp + ang_vel_error_exp) / 2.0 - linear_error
+        return (lin_vel_error_exp + ang_vel_error_exp) / 0.5 - linear_error
 
     # def _reward_tracking_lin_vel(self):
     #     """
@@ -765,12 +781,12 @@ class HiFreeEnv(LeggedRobot):
     def _reward_tracking_lin_vel(self):
         # Tracking of linear velocity commands (xy axes)
         lin_vel_error = torch.sum(torch.square(self.commands[:, :2] - self.base_lin_vel[:, :2]), dim=1)
-        return torch.exp(-lin_vel_error / self.cfg.rewards.tracking_sigma)
+        return torch.exp(-lin_vel_error / self.cfg.rewards.tracking_sigma) - 0.5
 
     def _reward_tracking_ang_vel(self):
         # Tracking of angular velocity commands (yaw)
         ang_vel_error = torch.square(self.commands[:, 2] - self.base_ang_vel[:, 2])
-        return torch.exp(-ang_vel_error / self.cfg.rewards.tracking_sigma)
+        return torch.exp(-ang_vel_error / self.cfg.rewards.tracking_sigma) - 0.5
 
     def _reward_feet_clearance(self):
         """
@@ -886,18 +902,6 @@ class HiFreeEnv(LeggedRobot):
         )
         term_3 = 0.05 * torch.sum(torch.abs(self.actions), dim=1)
         return term_1 + term_2 + term_3
-
-    def _reward_default_ankle_roll_pos(self):
-        e_1 = get_euler_xyz_tensor(self.rigid_state[:, self.feet_indices[0], 3:7])
-        e_2 = get_euler_xyz_tensor(self.rigid_state[:, self.feet_indices[1], 3:7])
-
-        feet_eular_0 = torch.abs(e_1[:, 0])
-        feet_eular_1 = torch.abs(e_2[:, 0])
-        rew = torch.exp(-((feet_eular_0 + feet_eular_1) / 2) / 0.1)
-        feet_eular_0 = torch.abs(e_1[:, 1])
-        feet_eular_1 = torch.abs(e_2[:, 1])
-        rew += torch.exp(-((feet_eular_0 + feet_eular_1) / 2) / 0.1)
-        return rew / 2
 
     def _reward_termination(self):
         # Terminal reward / penalty

@@ -301,18 +301,21 @@ class HiFreeEnv(LeggedRobot):
         scale_1 = 2 * self.cfg.rewards.target_joint_pos_scale
         scale_2 = 3 * self.cfg.rewards.target_joint_pos_scale
         scale_3 = 1 * self.cfg.rewards.target_joint_pos_scale
+        scale_4 = 1.5 * self.cfg.rewards.target_joint_pos_scale
 
         # 3. 左脚踏地阶段：在默认位置上叠加正弦偏移
         sin_pos_l[sin_pos_l > 0] = 0
         self.ref_dof_pos[:, 0] += sin_pos_l * scale_1
         self.ref_dof_pos[:, 3] += -sin_pos_l * scale_2
         self.ref_dof_pos[:, 4] += sin_pos_l * scale_3
+        self.ref_dof_pos[:, 17] += sin_pos_l * scale_4 # 17-R_shoulder_pitch
 
         # 4. 右脚踏地阶段：在默认位置上叠加正弦偏移
         sin_pos_r[sin_pos_r < 0] = 0
         self.ref_dof_pos[:, 6] += -sin_pos_r * scale_1
         self.ref_dof_pos[:, 9] += sin_pos_r * scale_2
         self.ref_dof_pos[:, 10] += -sin_pos_r * scale_3
+        self.ref_dof_pos[:, 13] += -sin_pos_r * scale_4  # 13-L_shoulder_pitch
 
         # 5. 双支撑阶段：恢复为默认位置
         mask = torch.abs(sin_pos) < 0.1
@@ -322,7 +325,9 @@ class HiFreeEnv(LeggedRobot):
         # 因为step中是actions += ref_action，所以ref_action必须是偏移量，而非绝对位置
 
         # self.ref_action = 2 * (self.ref_dof_pos - dof_default_expanded)
+        # self.ref_dof_pos[mask][:, [0, 3, 4, 6, 9, 10, 13, 17]] = dof_default_expanded[mask][:, [0, 3, 4, 6, 9, 10, 13, 17]]
         self.ref_dof_pos[mask][:, [0, 3, 4, 6, 9, 10]] = dof_default_expanded[mask][:, [0, 3, 4, 6, 9, 10]]
+
         # self.ref_action_debug = self.ref_dof_pos[:, [0, 3, 4, 6, 9, 10]] # zyx-debug
 
     def create_sim(self):
@@ -489,12 +494,23 @@ class HiFreeEnv(LeggedRobot):
         return left_foot_base, right_foot_base
 
     # ================================================ Rewards ================================================== #
+
+    def _reward_default_upper_joint_pos(self):
+        selected_columns = [12, 14, 15, 16, 18, 19, 20]
+
+        diff = (self.dof_pos - self.ref_dof_pos)[:, selected_columns]
+
+        r_dujp = torch.exp(-2 * torch.norm(diff, dim=1)) - 0.2 * torch.norm(
+            diff, dim=1
+        ).clamp(0, 1.0) # 0.5 --zyx
+        return r_dujp
+
     def _reward_joint_pos(self):
         """
         Calculates the reward based on the difference between the current joint positions and the target joint positions.
         """
 
-        selected_columns = [0, 3, 4, 6, 9, 10]
+        selected_columns = [0, 3, 4, 6, 9, 10, 13, 17]
         diff = (self.dof_pos - self.ref_dof_pos)[:, selected_columns]
 
         #debug --zyx
@@ -502,7 +518,7 @@ class HiFreeEnv(LeggedRobot):
 
         r = torch.exp(-2 * torch.norm(diff, dim=1)) - 0.2 * torch.norm(
             diff, dim=1
-        ).clamp(0, 0.5)
+        ).clamp(0, 1.0) # 0.5 --zyx
         return r
 
     def _reward_feet_y_distance(self):
@@ -724,27 +740,37 @@ class HiFreeEnv(LeggedRobot):
 
         return (lin_vel_error_exp + ang_vel_error_exp) / 2.0 - linear_error
 
+    # def _reward_tracking_lin_vel(self):
+    #     """
+    #     Tracks linear velocity commands along the xy axes.
+    #     Calculates a reward based on how closely the robot's linear velocity matches the commanded values.
+    #     """
+    #     error = self.commands[:, :2] - self.base_lin_vel[:, :2]
+    #     error *= 1.0 / (1.0 + torch.abs(self.commands[:, :2]))
+    #     rew = self._neg_sqrd_exp(error, a=self.cfg.rewards.tracking_sigma_lin).sum(dim=1)/2
+    #     return rew
+    #
+    # def _reward_tracking_ang_vel(self):
+    #     """
+    #     Tracks angular velocity commands for yaw rotation.
+    #     Computes a reward based on how closely the robot's angular velocity matches the commanded yaw values.
+    #     """
+    #
+    #     error = self.commands[:, 2] - self.base_ang_vel[:, 2]
+    #     error *= 1.0 / (1.0 + torch.abs(self.commands[:, 2]))
+    #     rew = self._neg_sqrd_exp(error, a=self.cfg.rewards.tracking_sigma_ang)
+    #     # print(rew.size())
+    #     return rew
+
     def _reward_tracking_lin_vel(self):
-        """
-        Tracks linear velocity commands along the xy axes.
-        Calculates a reward based on how closely the robot's linear velocity matches the commanded values.
-        """
-        error = self.commands[:, :2] - self.base_lin_vel[:, :2]
-        error *= 1.0 / (1.0 + torch.abs(self.commands[:, :2]))
-        rew = self._neg_sqrd_exp(error, a=self.cfg.rewards.tracking_sigma_lin).sum(dim=1)/2
-        return rew
+        # Tracking of linear velocity commands (xy axes)
+        lin_vel_error = torch.sum(torch.square(self.commands[:, :2] - self.base_lin_vel[:, :2]), dim=1)
+        return torch.exp(-lin_vel_error / self.cfg.rewards.tracking_sigma)
 
     def _reward_tracking_ang_vel(self):
-        """
-        Tracks angular velocity commands for yaw rotation.
-        Computes a reward based on how closely the robot's angular velocity matches the commanded yaw values.
-        """
-
-        error = self.commands[:, 2] - self.base_ang_vel[:, 2]
-        error *= 1.0 / (1.0 + torch.abs(self.commands[:, 2]))
-        rew = self._neg_sqrd_exp(error, a=self.cfg.rewards.tracking_sigma_ang)
-        # print(rew.size())
-        return rew
+        # Tracking of angular velocity commands (yaw)
+        ang_vel_error = torch.square(self.commands[:, 2] - self.base_ang_vel[:, 2])
+        return torch.exp(-ang_vel_error / self.cfg.rewards.tracking_sigma)
 
     def _reward_feet_clearance(self):
         """

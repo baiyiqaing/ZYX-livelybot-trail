@@ -676,7 +676,8 @@ class HiFreeEnv(LeggedRobot):
         Calculates the reward for keeping joint positions close to default positions, with a focus
         on penalizing deviation in yaw and roll directions. Excludes yaw and roll from the main penalty.
         """
-        selected_columns = [1, 5, 7, 11]
+        # selected_columns = [1, 5, 7, 11]
+        selected_columns = [7, 11]
         _yaw_roll = self.dof_pos[:, selected_columns]
         yaw_roll = torch.norm(_yaw_roll, dim=1)
         yaw_roll = torch.clamp(yaw_roll, 0, 50)

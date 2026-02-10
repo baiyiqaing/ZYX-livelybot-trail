@@ -57,7 +57,7 @@ def play(args):
     env_cfg.terrain.curriculum = False     
     env_cfg.terrain.max_init_terrain_level = 5
     env_cfg.noise.add_noise = True
-    env_cfg.domain_rand.push_robots = True 
+    env_cfg.domain_rand.push_robots = False
     env_cfg.domain_rand.joint_angle_noise = 0.
     env_cfg.noise.curriculum = False
     env_cfg.noise.noise_level = 0.5
@@ -87,21 +87,41 @@ def play(args):
     logger = Logger(env.dt)
     robot_index = 5 # which robot is used for logging
     joint_index = 1 # which joint is used for logging
-    stop_state_log = 500 # number of steps before plotting states
+    stop_state_log = 1000 # number of steps before plotting states
     if RENDER:
+        # camera_properties = gymapi.CameraProperties()
+        # camera_properties.width = 1920
+        # camera_properties.height = 1080
+        # h1 = env.gym.create_camera_sensor(env.envs[0], camera_properties)
+        # camera_offset = gymapi.Vec3(2, -1, 0.5)
+        # camera_rotation = gymapi.Quat.from_axis_angle(gymapi.Vec3(-0.3, 0.2, 1),
+        #                                             np.deg2rad(135))
+        # actor_handle = env.gym.get_actor_handle(env.envs[0], 0)
+        # body_handle = env.gym.get_actor_rigid_body_handle(env.envs[0], actor_handle, 0)
+        # env.gym.attach_camera_to_body(
+        #     h1, env.envs[0], body_handle,
+        #     gymapi.Transform(camera_offset, camera_rotation),
+        #     gymapi.FOLLOW_POSITION)
+
+        # 设置相机属性
         camera_properties = gymapi.CameraProperties()
         camera_properties.width = 1920
         camera_properties.height = 1080
         h1 = env.gym.create_camera_sensor(env.envs[0], camera_properties)
-        camera_offset = gymapi.Vec3(1, -1, 0.5)
-        camera_rotation = gymapi.Quat.from_axis_angle(gymapi.Vec3(-0.3, 0.2, 1),
+
+        # 优化后的相机视角
+        camera_offset = gymapi.Vec3(2, -2, 0.5)
+        camera_rotation = gymapi.Quat.from_axis_angle(gymapi.Vec3(-0.2, 0.1, 1.5),
                                                     np.deg2rad(135))
+
+        # 将相机附着到机器人
         actor_handle = env.gym.get_actor_handle(env.envs[0], 0)
         body_handle = env.gym.get_actor_rigid_body_handle(env.envs[0], actor_handle, 0)
         env.gym.attach_camera_to_body(
             h1, env.envs[0], body_handle,
             gymapi.Transform(camera_offset, camera_rotation),
-            gymapi.FOLLOW_POSITION)
+            gymapi.FOLLOW_POSITION
+        )
 
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         video_dir = os.path.join(LEGGED_GYM_ROOT_DIR, 'videos')
@@ -118,10 +138,10 @@ def play(args):
         actions = policy(obs.detach()) # * 0.
         
         if FIX_COMMAND:
-            env.commands[:, 0] = 0.6  # 1.0
-            env.commands[:, 1] = 0.01
-            env.commands[:, 2] = 0.01
-            env.commands[:, 3] = 0.05
+            env.commands[:, 0] = 0.4  # 1.0
+            env.commands[:, 1] = -0.
+            env.commands[:, 2] = 0.0
+            env.commands[:, 3] = -0.
 
         obs, critic_obs, rews, dones, infos = env.step(actions.detach())
 

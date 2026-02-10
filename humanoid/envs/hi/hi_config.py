@@ -103,12 +103,12 @@ class HiCfg(LeggedRobotCfg):
         # rot = [0., 0.27154693695611287, 0., 0.962425197628238]
         default_joint_angles = {  # = target angles [rad] when action = 0.0
             "waist_joint": 0.0,
-            "r_shoulder_pitch_joint": 0.25,
+            "r_shoulder_pitch_joint": 0.,
             "r_shoulder_roll_joint": -0.3236,
             "r_upper_arm_joint": 0.0,
             "r_elbow_joint": -1.5707,
             # "r_wrist_joint": 0.0,
-            "l_shoulder_pitch_joint": 0.25,
+            "l_shoulder_pitch_joint": 0.,
             "l_shoulder_roll_joint": 0.3236,
             "l_upper_arm_joint": 0.0,
             "l_elbow_joint": -1.5707,
@@ -201,7 +201,7 @@ class HiCfg(LeggedRobotCfg):
         heading_command = True  # if true: compute ang vel command from heading error
 
         class ranges:
-            lin_vel_x = [-0.5, 1.2]  # min max [m/s]
+            lin_vel_x = [-0.5, 1.5]  # min max [m/s]
             lin_vel_y = [-0.1, 0.1]  # min max [m/s]
             ang_vel_yaw = [-0.3, 0.3]  # min max [rad/s]
             heading = [-3.14, 3.14]
@@ -214,9 +214,9 @@ class HiCfg(LeggedRobotCfg):
         min_dist_x = 25
         max_dist_x = 30
         # put some settings here for LLM parameter tuning
-        target_joint_pos_scale =  0.23 #0.08  # rad
+        target_joint_pos_scale =  0.30 #0.08  # rad
         target_feet_height = 0.02  # m
-        cycle_time = 0.666  # sec
+        cycle_time = 0.5  # sec
         # if true negative total rewards are clipped at zero (avoids early termination problems)
         only_positive_rewards = False
         # tracking reward = exp(error*sigma)
@@ -250,7 +250,7 @@ class HiCfg(LeggedRobotCfg):
             default_hip_roll_joint_pos = 0.1
             default_thigh_joint_pos = 1.8
             default_ankle_roll_pos = 0.5
-            orientation = 3.0
+            orientation = 0.3
             base_height = 0.2
             base_acc = 0.2
             # energy

@@ -201,7 +201,7 @@ class HiCfg(LeggedRobotCfg):
         heading_command = True  # if true: compute ang vel command from heading error
 
         class ranges:
-            lin_vel_x = [-0.5, 1.5]  # min max [m/s]
+            lin_vel_x = [-0.5, 1.0]  # min max [m/s]
             lin_vel_y = [-0.1, 0.1]  # min max [m/s]
             ang_vel_yaw = [-0.3, 0.3]  # min max [rad/s]
             heading = [-3.14, 3.14]
@@ -228,7 +228,9 @@ class HiCfg(LeggedRobotCfg):
         class scales:
             # reference motion tracking
             default_upper_pos = 4.0 # --zyx
-            joint_pos = 4.0  # 1.6
+            joint_pos = 1.0  # 1.6
+            shoulder_joint_pos = 4.0
+            shoulder_default_joint_pos = 0.
             feet_clearance = 3.0
             feet_contact_number = 1.2
             # gait
@@ -241,13 +243,13 @@ class HiCfg(LeggedRobotCfg):
             # contact
             feet_contact_forces = -0.001
             # vel tracking
-            tracking_lin_vel = 5.
-            tracking_ang_vel = 5.
+            tracking_lin_vel = 7.
+            tracking_ang_vel = 8.
             vel_mismatch_exp = 0.5  # lin_z; ang x,y
             low_speed = 3.05
             track_vel_hard = 0. # 14 # 0.2
             # base pos
-            default_hip_roll_joint_pos = 0.1
+            default_hip_roll_joint_pos = 0.05
             default_thigh_joint_pos = 1.8
             default_ankle_roll_pos = 0.5
             orientation = 0.3

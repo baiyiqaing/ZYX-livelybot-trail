@@ -291,6 +291,7 @@ class HiFreeEnv(LeggedRobot):
         sin_pos = torch.sin(2 * torch.pi * phase + self.random_half_phase[0])
         sin_pos_l = sin_pos.clone()
         sin_pos_r = sin_pos.clone()
+        sin_pos_s = sin_pos.clone()
 
         # 1. 维度扩展：将[1,21]的默认位置扩展到[4096,21]，匹配batch维度
         batch_size = self.dof_pos.shape[0]
@@ -313,14 +314,14 @@ class HiFreeEnv(LeggedRobot):
         self.ref_dof_pos[:, 0] += sin_pos_l * scale_1
         self.ref_dof_pos[:, 3] += -sin_pos_l * scale_2
         self.ref_dof_pos[:, 4] += sin_pos_l * scale_3
-        self.ref_dof_pos[:, 17] += sin_pos_l * scale_4 # 17-R_shoulder_pitch
+        self.ref_dof_pos[:, 17] += sin_pos_s * scale_4 # 17-R_shoulder_pitch
 
         # 4. 右脚踏地阶段：在默认位置上叠加正弦偏移
         sin_pos_r[sin_pos_r < 0] = 0
         self.ref_dof_pos[:, 6] += -sin_pos_r * scale_1
         self.ref_dof_pos[:, 9] += sin_pos_r * scale_2
         self.ref_dof_pos[:, 10] += -sin_pos_r * scale_3
-        self.ref_dof_pos[:, 13] += -sin_pos_r * scale_4  # 13-L_shoulder_pitch
+        self.ref_dof_pos[:, 13] += -sin_pos_s * scale_4  # 13-L_shoulder_pitch
 
         # 5. 双支撑阶段：恢复为默认位置
         mask = torch.abs(sin_pos) < 0.1
@@ -331,7 +332,8 @@ class HiFreeEnv(LeggedRobot):
 
         # self.ref_action = 2 * (self.ref_dof_pos - dof_default_expanded)
         # self.ref_dof_pos[mask][:, [0, 3, 4, 6, 9, 10, 13, 17]] = dof_default_expanded[mask][:, [0, 3, 4, 6, 9, 10, 13, 17]]
-        self.ref_dof_pos[mask][:, [0, 3, 4, 6, 9, 10]] = dof_default_expanded[mask][:, [0, 3, 4, 6, 9, 10]]
+        # 抵消上面sin函数对default_pos的赋值，纯default的，会失效，不能用ref_dof_pos这个变量作为标的参考。 -- zyx
+        self.ref_dof_pos[mask][:, [0, 3, 4, 6, 9, 10, 13, 17]] = dof_default_expanded[mask][:, [0, 3, 4, 6, 9, 10, 13, 17]]
 
         # self.ref_action_debug = self.ref_dof_pos[:, [0, 3, 4, 6, 9, 10]] # zyx-debug
 
@@ -517,7 +519,7 @@ class HiFreeEnv(LeggedRobot):
         Calculates the reward based on the difference between the current joint positions and the target joint positions.
         """
 
-        selected_columns = [0, 3, 4, 6, 9, 10, 13, 17]
+        selected_columns = [0, 3, 4, 6, 9, 10]
         diff = (self.dof_pos - self.ref_dof_pos)[:, selected_columns]
 
         #debug --zyx
@@ -526,6 +528,40 @@ class HiFreeEnv(LeggedRobot):
         r = torch.exp(-15 * torch.norm(diff, dim=1)) - 0.5 * torch.norm(
             diff, dim=1
         ).clamp(0, 0.6) # original 0.5 --zyx
+        return r
+
+    def _reward_shoulder_joint_pos(self):
+        """
+        Calculates the reward based on the difference between the current joint positions and the target joint positions.
+        """
+
+        selected_columns_shoulder = [13, 17]
+        diff = (self.dof_pos - self.ref_dof_pos)[:, selected_columns_shoulder]
+
+        #debug --zyx
+        # ref_dof_pos = self.ref_dof_pos[:, selected_columns]
+
+        r = torch.exp(-15 * torch.norm(diff, dim=1)) - 0.5 * torch.norm(
+            diff, dim=1
+        ).clamp(0, 0.8) # original 0.5 --zyx
+
+        return r
+
+    def _reward_shoulder_default_joint_pos(self):
+        """
+        Calculates the reward based on the difference between the current joint positions and the target joint positions.
+        """
+
+        selected_columns_shoulder = [13, 17]
+        diff = (self.dof_pos - self.default_dof_pos)[:, selected_columns_shoulder]
+
+        #debug --zyx
+        # ref_dof_pos = self.ref_dof_pos[:, selected_columns]
+
+        r = torch.exp(-15 * torch.norm(diff, dim=1)) - 0.5 * torch.norm(
+            diff, dim=1
+        ).clamp(0, 0.8) # original 0.5 --zyx
+
         return r
 
     def _reward_feet_y_distance(self):

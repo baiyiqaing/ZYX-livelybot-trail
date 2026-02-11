@@ -201,8 +201,8 @@ class HiCfg(LeggedRobotCfg):
         heading_command = True  # if true: compute ang vel command from heading error
 
         class ranges:
-            lin_vel_x = [-0.5, 1.0]  # min max [m/s]
-            lin_vel_y = [-0.1, 0.1]  # min max [m/s]
+            lin_vel_x = [-0.5, 1.1]  # min max [m/s]
+            lin_vel_y = [-0.2, 0.2]  # min max [m/s]
             ang_vel_yaw = [-0.3, 0.3]  # min max [rad/s]
             heading = [-3.14, 3.14]
 
@@ -212,11 +212,11 @@ class HiCfg(LeggedRobotCfg):
         max_dist = 0.21
         # --zyx
         min_dist_x = 25
-        max_dist_x = 30
+        max_dist_x = 32
         # put some settings here for LLM parameter tuning
         target_joint_pos_scale =  0.30 #0.08  # rad
         target_feet_height = 0.02  # m
-        cycle_time = 0.5  # sec
+        cycle_time = 0.55  # sec
         # if true negative total rewards are clipped at zero (avoids early termination problems)
         only_positive_rewards = False
         # tracking reward = exp(error*sigma)
@@ -228,7 +228,7 @@ class HiCfg(LeggedRobotCfg):
         class scales:
             # reference motion tracking
             default_upper_pos = 4.0 # --zyx
-            joint_pos = 1.0  # 1.6
+            joint_pos = 4.0  # 1.6
             shoulder_joint_pos = 4.0
             shoulder_default_joint_pos = 0.
             feet_clearance = 3.0
@@ -252,7 +252,7 @@ class HiCfg(LeggedRobotCfg):
             default_hip_roll_joint_pos = 0.05
             default_thigh_joint_pos = 1.8
             default_ankle_roll_pos = 0.5
-            orientation = 0.3
+            orientation = 3.0
             base_height = 0.2
             base_acc = 0.2
             # energy

@@ -188,9 +188,9 @@ class HiCfg(LeggedRobotCfg):
         friction_range = [0.1, 2.0]
         randomize_base_mass = True
         added_mass_range = [-1.0, 1.0]
-        push_robots = False
-        push_interval_s = 4
-        max_push_vel_xy = 0.2
+        push_robots = True
+        push_interval_s = 7
+        max_push_vel_xy = 0.4
         max_push_ang_vel = 0.2 # 0.4
         dynamic_randomization = 0.02
 
@@ -216,7 +216,7 @@ class HiCfg(LeggedRobotCfg):
         # put some settings here for LLM parameter tuning
         target_joint_pos_scale =  0.30 #0.08  # rad
         target_feet_height = 0.02  # m
-        cycle_time = 0.55  # sec
+        cycle_time = 0.666  # sec
         # if true negative total rewards are clipped at zero (avoids early termination problems)
         only_positive_rewards = False
         # tracking reward = exp(error*sigma)
@@ -228,8 +228,8 @@ class HiCfg(LeggedRobotCfg):
         class scales:
             # reference motion tracking
             default_upper_pos = 4.0 # --zyx
-            joint_pos = 4.0  # 1.6
-            shoulder_joint_pos = 4.0
+            joint_pos = 2.0  # 1.6
+            shoulder_joint_pos = 10.0
             shoulder_default_joint_pos = 0.
             feet_clearance = 3.0
             feet_contact_number = 1.2

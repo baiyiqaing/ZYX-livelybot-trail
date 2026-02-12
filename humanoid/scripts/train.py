@@ -29,7 +29,8 @@
 #
 # Copyright (c) 2024 Beijing RobotEra TECHNOLOGY CO.,LTD. All rights reserved.
 
-
+import shutil
+import os
 from humanoid.envs import *
 from humanoid.utils import get_args, task_registry
 

@@ -41,6 +41,9 @@ from .actor_critic import ActorCritic
 from humanoid.algo.vec_env import VecEnv
 from torch.utils.tensorboard import SummaryWriter
 
+import shutil
+from humanoid.envs import *
+
 
 class OnPolicyRunner:
 
@@ -100,6 +103,21 @@ class OnPolicyRunner:
                 config=self.all_cfg,
             )
             self.writer = SummaryWriter(log_dir=self.log_dir, flush_secs=10)
+
+            SOURCE_CFG_DIR = os.path.join(LEGGED_GYM_ENVS_DIR, "hi/hi_config.py")
+            SOURCE_ENV_DIR = os.path.join(LEGGED_GYM_ENVS_DIR, "hi/hi_env.py")
+            # TARGET_DIR = ppo_runner.log_dir
+            TARGET_CFG_DIR = os.path.join(self.log_dir, "hi_config.py")
+            TARGET_ENV_DIR = os.path.join(self.log_dir, "hi_env.py")
+            open(TARGET_CFG_DIR, 'w').close()
+            open(TARGET_ENV_DIR, 'w').close()
+            os.makedirs(os.path.dirname(TARGET_CFG_DIR), exist_ok=True)
+            os.makedirs(os.path.dirname(TARGET_ENV_DIR), exist_ok=True)
+            shutil.copy2(SOURCE_CFG_DIR, TARGET_CFG_DIR)
+            print(f"复制完成：{SOURCE_CFG_DIR} → {TARGET_CFG_DIR}")
+            shutil.copy2(SOURCE_ENV_DIR, TARGET_ENV_DIR)
+            print(f"复制完成：{SOURCE_ENV_DIR} → {TARGET_ENV_DIR}")
+
         if init_at_random_ep_len:
             self.env.episode_length_buf = torch.randint_like(
                 self.env.episode_length_buf, high=int(self.env.max_episode_length)

@@ -92,7 +92,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 		<collision>
 			<origin xyz="0 0.04 0" rpy="0 0 0" />
 			<geometry>
-				<box size="0.06 0.07 0.06" />
+				<box size="0.06 0.37 0.06" />
 				<!-- <mesh filename="../meshes/l_hip_pitch_link.STL" /> -->
 			</geometry>
 		</collision>
@@ -128,7 +128,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 		</collision>
 	</link>
 	<joint name="l_hip_roll_joint" type="revolute">
-		<origin xyz="0.02725 0.042 0" rpy="0 0 0" />
+		<origin xyz="0.02725 0.072 0" rpy="0 0 0" />
 		<parent link="l_hip_pitch_link" />
 		<child link="l_hip_roll_link" />
 		<axis xyz="1 0 0" />
@@ -152,7 +152,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 		<collision>
 			<origin xyz="0 0 -0.005" rpy="0 0 0" />
 			<geometry>
-				<box size="0.01 0.01 0.01" />
+				<box size="0.01 0.01 0.11" />
 				<!-- <mesh filename="../meshes/l_thigh_link.STL" /> -->
 			</geometry>
 		</collision>
@@ -180,7 +180,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 			</material>
 		</visual>
 		<collision>
-			<origin xyz="0 0 -0.07" rpy="0 0 0" />
+			<origin xyz="0 0 -0.17" rpy="0 0 0" />
 			<geometry>
 				<box size="0.06 0.06 0.21" />
 				<!-- <mesh filename="../meshes/l_calf_link.STL" /> -->
@@ -188,7 +188,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 		</collision>
 	</link>
 	<joint name="l_calf_joint" type="revolute">
-		<origin xyz="0 0.00375 -0.069" rpy="0 0 0" />
+		<origin xyz="0 0.00375 -0.169" rpy="0 0 0" />
 		<parent link="l_thigh_link" />
 		<child link="l_calf_link" />
 		<axis xyz="0 1 0" />
@@ -218,7 +218,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 		</collision>
 	</link>
 	<joint name="l_ankle_pitch_joint" type="revolute">
-		<origin xyz="0 0.00475 -0.2" rpy="0 0 0" />
+		<origin xyz="0 0.00475 -0.3" rpy="0 0 0" />
 		<parent link="l_calf_link" />
 		<child link="l_ankle_pitch_link" />
 		<axis xyz="0 1 0" />
@@ -272,7 +272,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 		<collision>
 			<origin xyz="0 -0.04 0" rpy="0 0 0" />
 			<geometry>
-				<box size="0.06 0.07 0.06" />
+				<box size="0.06 0.37 0.06" />
 				<!-- <mesh filename="../meshes/r_hip_pitch_link.STL" /> -->
 			</geometry>
 		</collision>
@@ -308,7 +308,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 		</collision>
 	</link>
 	<joint name="r_hip_roll_joint" type="revolute">
-		<origin xyz="0.02725 -0.042 0" rpy="0 0 0" />
+		<origin xyz="0.02725 -0.072 0" rpy="0 0 0" />
 		<parent link="r_hip_pitch_link" />
 		<child link="r_hip_roll_link" />
 		<axis xyz="1 0 0" />
@@ -332,7 +332,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 		<collision>
 			<origin xyz="0 0 -0.005" rpy="0 0 0" />
 			<geometry>
-				<box size="0.01 0.01 0.01" />
+				<box size="0.01 0.01 0.11" />
 				<!-- <mesh filename="../meshes/r_thigh_link.STL" /> -->
 			</geometry>
 		</collision>
@@ -360,7 +360,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 			</material>
 		</visual>
 		<collision>
-			<origin xyz="0 0 -0.07" rpy="0 0 0" />
+			<origin xyz="0 0 -0.17" rpy="0 0 0" />
 			<geometry>
 				<box size="0.06 0.06 0.21" />
 				<!-- <mesh filename="../meshes/r_calf_link.STL" /> -->
@@ -368,7 +368,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 		</collision>
 	</link>
 	<joint name="r_calf_joint" type="revolute">
-		<origin xyz="0 -0.00375 -0.069" rpy="0 0 0" />
+		<origin xyz="0 -0.00375 -0.169" rpy="0 0 0" />
 		<parent link="r_thigh_link" />
 		<child link="r_calf_link" />
 		<axis xyz="0 1 0" />
@@ -398,7 +398,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 		</collision>
 	</link>
 	<joint name="r_ankle_pitch_joint" type="revolute">
-		<origin xyz="0 -0.00475 -0.2" rpy="0 0 0" />
+		<origin xyz="0 -0.00475 -0.3" rpy="0 0 0" />
 		<parent link="r_calf_link" />
 		<child link="r_ankle_pitch_link" />
 		<axis xyz="0 1 0" />

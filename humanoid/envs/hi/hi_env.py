@@ -307,7 +307,7 @@ class HiFreeEnv(LeggedRobot):
         scale_1 = 2 * self.cfg.rewards.target_joint_pos_scale
         scale_2 = 3 * self.cfg.rewards.target_joint_pos_scale
         scale_3 = 1 * self.cfg.rewards.target_joint_pos_scale
-        scale_4 = 1.5 * self.cfg.rewards.target_joint_pos_scale
+        scale_4 = 1.2 * self.cfg.rewards.target_joint_pos_scale
 
         # 3. 左脚踏地阶段：在默认位置上叠加正弦偏移
         sin_pos_l[sin_pos_l > 0] = 0

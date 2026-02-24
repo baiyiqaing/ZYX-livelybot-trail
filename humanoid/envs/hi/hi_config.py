@@ -103,12 +103,12 @@ class HiCfg(LeggedRobotCfg):
         # rot = [0., 0.27154693695611287, 0., 0.962425197628238]
         default_joint_angles = {  # = target angles [rad] when action = 0.0
             "waist_joint": 0.0,
-            "r_shoulder_pitch_joint": 0.,
+            "r_shoulder_pitch_joint": 0.1,
             "r_shoulder_roll_joint": -0.3236,
             "r_upper_arm_joint": 0.0,
             "r_elbow_joint": -1.5707,
             # "r_wrist_joint": 0.0,
-            "l_shoulder_pitch_joint": 0.,
+            "l_shoulder_pitch_joint": 0.1,
             "l_shoulder_roll_joint": 0.3236,
             "l_upper_arm_joint": 0.0,
             "l_elbow_joint": -1.5707,
@@ -190,7 +190,7 @@ class HiCfg(LeggedRobotCfg):
         added_mass_range = [-1.0, 1.0]
         push_robots = True
         push_interval_s = 7
-        max_push_vel_xy = 0.4
+        max_push_vel_xy = 0.25
         max_push_ang_vel = 0.2 # 0.4
         dynamic_randomization = 0.02
 
@@ -207,7 +207,7 @@ class HiCfg(LeggedRobotCfg):
             heading = [-3.14, 3.14]
 
     class rewards:
-        base_height_target = 0.47
+        base_height_target = 0.655
         min_dist = 0.19
         max_dist = 0.21
         # --zyx
@@ -215,7 +215,7 @@ class HiCfg(LeggedRobotCfg):
         max_dist_x = 32
         # put some settings here for LLM parameter tuning
         target_joint_pos_scale =  0.30 #0.08  # rad
-        target_feet_height = 0.02  # m
+        target_feet_height = 0.03  # m
         cycle_time = 0.666  # sec
         # if true negative total rewards are clipped at zero (avoids early termination problems)
         only_positive_rewards = False
@@ -223,28 +223,28 @@ class HiCfg(LeggedRobotCfg):
         tracking_sigma_ang = 0.1
         tracking_sigma_lin = 0.1
         tracking_sigma = 0.20 # original=0.25 tracking reward = exp(-error^2/sigma)  # --zyx
-        max_contact_force = 230  # 130 pai #forces above this value are penalized
+        max_contact_force = 200  # 130 pai #forces above this value are penalized
 
         class scales:
             # reference motion tracking
             default_upper_pos = 3.0 # --zyx
             joint_pos = 4.0  # 1.6
-            shoulder_joint_pos = 5.0
+            shoulder_joint_pos = 4.0
             shoulder_default_joint_pos = 0.
             feet_clearance = 3.0
             feet_contact_number = 1.2
             # gait
             feet_air_time = 1.0
             foot_slip = -0.05
-            feet_x_distance = 0.70
-            feet_y_distance = 0.60 # --zyx
+            feet_x_distance = 0.50
+            feet_y_distance = 0.50 # --zyx
             feet_distance = 0.  # 0.2
             knee_distance = 0.  # 0.2
             # contact
             feet_contact_forces = -0.001
             # vel tracking
-            tracking_lin_vel = 8.
-            tracking_ang_vel = 8.
+            tracking_lin_vel = 7.
+            tracking_ang_vel = 7.
             vel_mismatch_exp = 0.5  # lin_z; ang x,y
             low_speed = 2.05
             track_vel_hard = 0. # 14 # 0.2
@@ -252,7 +252,7 @@ class HiCfg(LeggedRobotCfg):
             default_hip_roll_joint_pos = 0.05
             default_thigh_joint_pos = 1.
             default_ankle_roll_pos = 0.5
-            orientation = 4.0
+            orientation = 3.0
             base_height = 0.2
             base_acc = 0.2
             # energy
@@ -262,7 +262,7 @@ class HiCfg(LeggedRobotCfg):
             dof_acc = -1e-8
             collision = -1.0
 
-            termination = 1.0
+            termination = 2.0
 
 
     class normalization:

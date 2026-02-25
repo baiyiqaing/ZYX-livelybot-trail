@@ -249,11 +249,11 @@ class HiCfg(LeggedRobotCfg):
             low_speed = 2.05
             track_vel_hard = 0. # 14 # 0.2
             # base pos
-            default_hip_roll_joint_pos = 0.05
+            default_hip_roll_joint_pos = 0.01
             default_thigh_joint_pos = 1.
             default_ankle_roll_pos = 0.5
             orientation = 3.0
-            base_height = 0.2
+            base_height = 10.2
             base_acc = 0.2
             # energy
             action_smoothness = -0.002

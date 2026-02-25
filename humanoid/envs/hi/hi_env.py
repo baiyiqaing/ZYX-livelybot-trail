@@ -751,7 +751,7 @@ class HiFreeEnv(LeggedRobot):
         base_height = self.root_states[:, 2] - (measured_heights - 0.05)
         return torch.exp(
             -torch.abs(base_height - self.cfg.rewards.base_height_target) * 50
-        )
+        ) - 0.55
 
     def _reward_base_acc(self):
         """

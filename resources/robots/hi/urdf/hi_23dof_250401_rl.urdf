@@ -92,7 +92,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 		<collision>
 			<origin xyz="0 0.04 0" rpy="0 0 0" />
 			<geometry>
-				<box size="0.06 0.37 0.06" />
+				<box size="0.06 0.10 0.06" />
 				<!-- <mesh filename="../meshes/l_hip_pitch_link.STL" /> -->
 			</geometry>
 		</collision>
@@ -152,7 +152,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 		<collision>
 			<origin xyz="0 0 -0.005" rpy="0 0 0" />
 			<geometry>
-				<box size="0.01 0.01 0.11" />
+				<box size="0.05 0.05 0.11" />
 				<!-- <mesh filename="../meshes/l_thigh_link.STL" /> -->
 			</geometry>
 		</collision>
@@ -182,7 +182,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 		<collision>
 			<origin xyz="0 0 -0.17" rpy="0 0 0" />
 			<geometry>
-				<box size="0.06 0.06 0.21" />
+				<box size="0.06 0.06 0.19" />
 				<!-- <mesh filename="../meshes/l_calf_link.STL" /> -->
 			</geometry>
 		</collision>
@@ -272,7 +272,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 		<collision>
 			<origin xyz="0 -0.04 0" rpy="0 0 0" />
 			<geometry>
-				<box size="0.06 0.37 0.06" />
+				<box size="0.06 0.10 0.06" />
 				<!-- <mesh filename="../meshes/r_hip_pitch_link.STL" /> -->
 			</geometry>
 		</collision>
@@ -332,7 +332,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 		<collision>
 			<origin xyz="0 0 -0.005" rpy="0 0 0" />
 			<geometry>
-				<box size="0.01 0.01 0.11" />
+				<box size="0.05 0.05 0.11" />
 				<!-- <mesh filename="../meshes/r_thigh_link.STL" /> -->
 			</geometry>
 		</collision>
@@ -362,7 +362,7 @@ For more information, please see http://wiki.ros.org/sw_urdf_exporter
 		<collision>
 			<origin xyz="0 0 -0.17" rpy="0 0 0" />
 			<geometry>
-				<box size="0.06 0.06 0.21" />
+				<box size="0.06 0.06 0.19" />
 				<!-- <mesh filename="../meshes/r_calf_link.STL" /> -->
 			</geometry>
 		</collision>

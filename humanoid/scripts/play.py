@@ -138,10 +138,10 @@ def play(args):
         actions = policy(obs.detach()) # * 0.
         
         if FIX_COMMAND:
-            env.commands[:, 0] = 0.0  # 1.0
+            env.commands[:, 0] = 0.5  # 1.0
             env.commands[:, 1] = -0.
             env.commands[:, 2] = 0.0
-            env.commands[:, 3] = -0.
+            env.commands[:, 3] = -1.6
 
         obs, critic_obs, rews, dones, infos = env.step(actions.detach())
 

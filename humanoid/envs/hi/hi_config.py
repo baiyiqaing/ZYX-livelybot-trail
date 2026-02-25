@@ -46,7 +46,7 @@ class HiCfg(LeggedRobotCfg):
         num_privileged_obs = int(c_frame_stack * (single_num_privileged_obs))
         num_actions = 21
         num_envs = 4096
-        episode_length_s = 12  # episode length in seconds
+        episode_length_s = 20  # episode length in seconds
         use_ref_actions = False # be careful with the step() usage. --zyx
 
     class safety:
@@ -99,7 +99,7 @@ class HiCfg(LeggedRobotCfg):
             height_measurements = 0.1
 
     class init_state(LeggedRobotCfg.init_state):
-        pos = [0.0, 0.0, 0.48]
+        pos = [0.0, 0.0, 0.66]
         # rot = [0., 0.27154693695611287, 0., 0.962425197628238]
         default_joint_angles = {  # = target angles [rad] when action = 0.0
             "waist_joint": 0.0,
@@ -207,12 +207,12 @@ class HiCfg(LeggedRobotCfg):
             heading = [-3.14, 3.14]
 
     class rewards:
-        base_height_target = 0.655
-        min_dist = 0.19
-        max_dist = 0.21
+        base_height_target = 0.655 # 0.485
+        min_dist = 0.25
+        max_dist = 0.27
         # --zyx
-        min_dist_x = 25
-        max_dist_x = 32
+        min_dist_x = 29
+        max_dist_x = 36
         # put some settings here for LLM parameter tuning
         target_joint_pos_scale =  0.30 #0.08  # rad
         target_feet_height = 0.03  # m

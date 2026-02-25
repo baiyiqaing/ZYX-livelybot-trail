@@ -46,7 +46,7 @@ class HiCfg(LeggedRobotCfg):
         num_privileged_obs = int(c_frame_stack * (single_num_privileged_obs))
         num_actions = 21
         num_envs = 4096
-        episode_length_s = 20  # episode length in seconds
+        episode_length_s = 20  # episode length in seconds  --zyx origin=12
         use_ref_actions = False # be careful with the step() usage. --zyx
 
     class safety:

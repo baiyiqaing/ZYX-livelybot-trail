@@ -99,7 +99,7 @@ class HiCfg(LeggedRobotCfg):
             height_measurements = 0.1
 
     class init_state(LeggedRobotCfg.init_state):
-        pos = [0.0, 0.0, 0.66]
+        pos = [0.0, 0.0, 0.68]
         # rot = [0., 0.27154693695611287, 0., 0.962425197628238]
         default_joint_angles = {  # = target angles [rad] when action = 0.0
             "waist_joint": 0.0,
@@ -113,17 +113,17 @@ class HiCfg(LeggedRobotCfg):
             "l_upper_arm_joint": 0.0,
             "l_elbow_joint": -1.5707,
             # "l_wrist_joint": 0.0,
-            "r_hip_pitch_joint": -0.4,
+            "r_hip_pitch_joint": -0.35,
             "r_hip_roll_joint": 0.0,
             "r_thigh_joint": 0.0,
-            "r_calf_joint": 0.8,
-            "r_ankle_pitch_joint": -0.4,
+            "r_calf_joint": 0.7,
+            "r_ankle_pitch_joint": -0.35,
             "r_ankle_roll_joint": 0.0,
-            "l_hip_pitch_joint": -0.4,
+            "l_hip_pitch_joint": -0.35,
             "l_hip_roll_joint": 0.0,
             "l_thigh_joint": 0.0,
-            "l_calf_joint": 0.8,
-            "l_ankle_pitch_joint": -0.4,
+            "l_calf_joint": 0.7,
+            "l_ankle_pitch_joint": -0.35,
             "l_ankle_roll_joint": 0.0,
         }
 
@@ -202,12 +202,12 @@ class HiCfg(LeggedRobotCfg):
 
         class ranges:
             lin_vel_x = [-0.5, 1.2]  # min max [m/s]
-            lin_vel_y = [-0.3, 0.3]  # min max [m/s]
+            lin_vel_y = [-0.2, 0.2]  # min max [m/s]
             ang_vel_yaw = [-0.3, 0.3]  # min max [rad/s]
             heading = [-3.14, 3.14]
 
     class rewards:
-        base_height_target = 0.655 # 0.485
+        base_height_target = 0.675 # 0.485
         min_dist = 0.25
         max_dist = 0.27
         # --zyx
@@ -236,12 +236,12 @@ class HiCfg(LeggedRobotCfg):
             # gait
             feet_air_time = 1.0
             foot_slip = -0.05
-            feet_x_distance = 0.50
-            feet_y_distance = 0.50 # --zyx
+            feet_x_distance = 7.50
+            feet_y_distance = 7.50 # --zyx
             feet_distance = 0.  # 0.2
             knee_distance = 0.  # 0.2
             # contact
-            feet_contact_forces = -0.001
+            feet_contact_forces = -0.002
             # vel tracking
             tracking_lin_vel = 7.
             tracking_ang_vel = 7.
@@ -249,14 +249,14 @@ class HiCfg(LeggedRobotCfg):
             low_speed = 2.05
             track_vel_hard = 0. # 14 # 0.2
             # base pos
-            default_hip_roll_joint_pos = 0.01
+            default_hip_roll_joint_pos = 0.1
             default_thigh_joint_pos = 1.
             default_ankle_roll_pos = 0.5
-            orientation = 3.0
-            base_height = 10.2
+            orientation = 4.0
+            base_height = 6.2
             base_acc = 0.2
             # energy
-            action_smoothness = -0.002
+            action_smoothness = -0.003
             torques = -1e-5
             dof_vel = -5e-5
             dof_acc = -1e-8
@@ -279,7 +279,7 @@ class HiCfg(LeggedRobotCfg):
 
 
 class HiCfgPPO(LeggedRobotCfgPPO):
-    seed = 500
+    seed = 600
     runner_class_name = "OnPolicyRunner"  # DWLOnPolicyRunner
 
     class policy:
